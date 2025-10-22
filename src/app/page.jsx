@@ -5,8 +5,14 @@ import { Upload, FileSpreadsheet, QrCode, Download, X, AlertCircle, CheckCircle2
 import QRCodeLib from 'qrcode';
 import * as XLSX from 'xlsx';
 import jsQR from 'jsqr';
+import QRCodeGenerator from '@/components/QRCodeGenerator';
+import { signToken } from '@/lib/jose';
 
-// QR Scanner Component
+const hashData = async (row) => {
+    console.log(row);
+  return await signToken(row);
+}
+
 const QRScanner = ({ onScanSuccess, onClose }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
@@ -448,14 +454,14 @@ export default function ExcelQRGenerator() {
         setError(null);
         setSuccess(null);
     }, []);
-
+    
     const handleScanSuccess = useCallback((data) => {
         setScannedData(data);
         setShowScanner(false);
         setSuccess('QR code scanned successfully!');
     }, []);
 
-    const processExcelFile = useCallback(async (file) => {
+   const processExcelFile = useCallback(async (file) => {
         setLoading(true);
         resetState();
 
@@ -517,9 +523,16 @@ export default function ExcelQRGenerator() {
 
             if (!validObjects.length) throw new Error('No valid data rows found. All rows appear to be empty.');
 
+            const objectsWithHash = await Promise.all(
+                validObjects.map(async (obj) => ({
+                    ...obj,
+                    _hashedId: await hashData(obj)
+                }))
+            );
+
             setHeaders(uniqueHeaders);
-            setDataObjects(validObjects);
-            setSuccess(`Successfully processed ${validObjects.length} row${validObjects.length !== 1 ? 's' : ''} from "${sheetName}"`);
+            setDataObjects(objectsWithHash);
+            setSuccess(`Successfully processed ${objectsWithHash.length} row${objectsWithHash.length !== 1 ? 's' : ''} from "${sheetName}"`);
         } catch (err) {
             console.error('Processing error:', err);
             setError(err.message || 'Failed to process Excel file. Please ensure it is a valid Excel file.');
@@ -528,6 +541,7 @@ export default function ExcelQRGenerator() {
         }
     }, [resetState]);
 
+    console.log(dataObjects);
     const handleFileChange = useCallback((e) => {
         const selectedFile = e.target.files?.[0];
         if (!selectedFile) return;
@@ -705,7 +719,7 @@ export default function ExcelQRGenerator() {
 
                         <div className="overflow-x-auto rounded-xl border-2 border-gray-200">
                             <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gradient-to-r from-indigo-50 to-purple-50">
+                                <thead className="bg-linear-to-r from-indigo-50 to-purple-50">
                                     <tr>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Row</th>
                                         {headers.map((header, idx) => (
@@ -753,11 +767,9 @@ export default function ExcelQRGenerator() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {dataObjects.map((row, idx) => (
-                                <QRCodeDisplay
-                                    key={`qr-${idx}`}
-                                    data={row}
-                                    rowNumber={idx + 2}
-                                    displayId={row[headers[0]] || `Row ${idx + 2}`}
+                                <QRCodeGenerator
+                                    key={idx}
+                                    value={`http://localhost:3000/product?id=${row._hashedId}`}
                                 />
                             ))}
                         </div>
