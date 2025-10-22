@@ -150,13 +150,13 @@ const QRScanner = ({ onScanSuccess, onClose }) => {
                 if (code && code.data) {
                     try {
                         const data = JSON.parse(code.data);
-                        if (typeof data === 'object' && !Array.isArray(data)) {
+                        if (typeof data === 'object' && data !== null) {
                             stopCamera();
                             onScanSuccess(data);
                             return;
                         }
                     } catch (err) {
-                        console.log('QR code contains non-JSON data');
+                        console.log('QR code contains non-JSON data:', err);
                     }
                 }
             }
@@ -275,7 +275,6 @@ const QRScanner = ({ onScanSuccess, onClose }) => {
 
 // QR Code Display Component
 const QRCodeDisplay = ({ data, rowNumber, displayId }) => {
-    const qrContainerRef = useRef(null);
     const [status, setStatus] = useState('loading');
     const [qrDataUrl, setQrDataUrl] = useState('');
 
@@ -337,7 +336,7 @@ const QRCodeDisplay = ({ data, rowNumber, displayId }) => {
                 </div>
 
                 <div className="relative w-[200px] h-[200px] flex items-center justify-center bg-white rounded-lg">
-                    <div ref={qrContainerRef} className="w-full h-full flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center">
                         {qrDataUrl && <img src={qrDataUrl} alt={`QR Code for ${displayId}`} className="w-full h-full" />}
                     </div>
                     {status === 'loading' && (
@@ -367,12 +366,26 @@ const ScannedDataDisplay = ({ scannedData, onClose }) => {
 
     const entries = Object.entries(scannedData);
 
+    const formatValue = (value) => {
+        if (value === null || value === undefined) return '-';
+        if (typeof value === 'object') return JSON.stringify(value, null, 2);
+        return String(value);
+    };
+
+    const formatKey = (key) => {
+        return key
+            .replace(/[_-]/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    };
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-auto relative shadow-2xl">
+            <div className="bg-white rounded-2xl p-8 max-w-4xl w-full max-h-[90vh] overflow-auto relative shadow-2xl">
                 <button
                     onClick={onClose}
-                    className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-lg transition-colors z-10"
                     aria-label="Close"
                 >
                     <X className="w-6 h-6 text-gray-500" />
@@ -380,42 +393,49 @@ const ScannedDataDisplay = ({ scannedData, onClose }) => {
 
                 <div className="mb-8">
                     <div className="flex items-center mb-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                            <CheckCircle2 className="w-6 h-6 text-green-600" />
+                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            <CheckCircle2 className="w-7 h-7 text-green-600" />
                         </div>
-                        <h2 className="text-3xl font-bold text-gray-900">Scanned QR Data</h2>
+                        <div>
+                            <h2 className="text-3xl font-bold text-gray-900">Scanned QR Data</h2>
+                            <p className="text-gray-500 text-sm mt-1">Information extracted from the QR code</p>
+                        </div>
                     </div>
-                    <p className="text-gray-500 text-sm ml-13">Information extracted from the QR code</p>
                 </div>
 
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                    <table className="min-w-full">
-                        <thead>
-                            <tr className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-200">
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-1/3">
-                                    Field
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-2/3">
-                                    Value
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {entries.map(([key, value], idx) => (
-                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-semibold text-gray-900 align-top">
-                                        {key.replace(/_/g, ' ')}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-700">
-                                        {value || '-'}
-                                    </td>
+                <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden shadow-sm">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr className="bg-gradient-to-r from-green-50 to-emerald-50">
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-1/3">
+                                        Field Name
+                                    </th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-2/3">
+                                        Value
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                                {entries.map(([key, value], idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 text-sm font-semibold text-gray-900 align-top whitespace-normal break-words">
+                                            {formatKey(key)}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700 align-top whitespace-pre-wrap break-words">
+                                            {formatValue(value)}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                <div className="mt-8 flex justify-end">
+                <div className="mt-8 flex justify-between items-center">
+                    <div className="text-sm text-gray-500">
+                        Total fields: <span className="font-semibold text-gray-700">{entries.length}</span>
+                    </div>
                     <button
                         onClick={onClose}
                         className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
