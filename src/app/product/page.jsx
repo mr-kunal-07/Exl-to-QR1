@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Key, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Key, AlertCircle, CheckCircle2, Loader2, QrCode } from 'lucide-react';
 import { verifyToken } from '@/lib/jose';
 
 const TokenDecoderPage = () => {
@@ -43,23 +43,26 @@ const TokenDecoderPage = () => {
     const entries = decodedData ? Object.entries(rest) : [];
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <header className="text-center mb-12">
-                    <div className="flex items-center justify-center mb-4">
-                        <div className="bg-indigo-100 p-3 rounded-2xl mr-3">
-                            <Key className="w-10 h-10 text-indigo-600" />
+        <div className="min-h-screen bg-gray-200">
+            <nav className="bg-white border-b border-slate-200">
+                <div className="max-w-7xl mx-auto px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-blue-600 p-2 rounded-lg">
+                                <Key className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-semibold text-slate-900">Product Information</h1>
+                                <p className="text-xs text-slate-500">Decode and view token information in a readable format</p>
+                            </div>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black text-gray-900">Product Information</h1>
                     </div>
-                    <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                        Decode and view token information in a readable format
-                    </p>
-                </header>
-
+                </div>
+            </nav>
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
                 <div className="bg-white rounded-3xl shadow-xl p-8 border-2 border-gray-100">
                     {loading && (
-                        <div className="flex items-center justify-center space-x-3 text-indigo-600 py-12">
+                        <div className="flex items-center justify-center space-x-3 text-indigo-600 py-8">
                             <Loader2 className="w-6 h-6 animate-spin" />
                             <span className="font-medium text-lg">Decoding token...</span>
                         </div>
